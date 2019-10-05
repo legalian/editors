@@ -21,9 +21,10 @@
       <button data-bind="click:addMode">Add Nodes</button>
       <button data-bind="click:drawMode">Draw edges</button>
       <button data-bind="click:editMode">Edit data</button>
+      <button data-bind="click:deleteMode">Delete elements</button>
     </div>
     <div class = "propbox" data-bind="with:activelayer()" style="position:relative;">
-      <i class="material-icons" style="position:absolute;right:5px;top:5px;color:red;" data-bind="click:$parent.deletelayer">delete_forever</i>
+      <i class="material-icons" style="position:absolute;right:5px;top:5px;color:red;" data-bind="click:$root.deleteObject">delete_forever</i>
       <!-- ko ifnot: editingname-->
       <span data-bind="text:name,event:{dblclick:beginEditName}"></span> Properties:<br/>
       <!-- /ko -->

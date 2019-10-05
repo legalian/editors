@@ -24,7 +24,6 @@ function drawEdge(selected,doucided,a,b,darcolor) {
   }
 }
 
-
 function Edge(a,b) {
   var self = this;
   self.a = a;
@@ -42,7 +41,7 @@ function Edge(a,b) {
   self.svg = ko.computed(function() {
     var a = self.a.pos();
     var b = self.b.pos();
-    var amt = scalevec(50,normalize(subtractvec(a,b)))
+    var amt = scalevec(justice.radius(),normalize(subtractvec(a,b)))
     var c = addvec(b,amt);
     var d = subtractvec(a,amt);
     var darcolor = "black";
@@ -53,15 +52,13 @@ function Edge(a,b) {
   self.disto = function(pos) {
     var a = self.a.pos();
     var b = self.b.pos();
-    var amt = scalevec(50,normalize(subtractvec(a,b)))
+    var amt = scalevec(justice.radius(),normalize(subtractvec(a,b)))
     var c = addvec(b,amt);
     var d = subtractvec(a,amt);
 
     if (self.doucided()) {
       var k = {'x':(c.y-d.y)*.1 + (c.x+d.x)*.5,'y':(c.y+d.y)*.5 - (c.x-d.x)*.1};
-      console.log(pos,c,d,k);
       var djdj = Math.sqrt(dist2quadratic(pos,c,k,d));
-      console.log(djdj);
       return djdj
 
     } else {
@@ -89,20 +86,21 @@ function Node(name,x,y) {
   };
   self.svg = ko.computed(function() {
     var stwidth = '3';
-    console.log(self.selected());
     if (self.selected()) {stwidth = '6';}
-    console.log(stwidth);
     return "\
-      <circle cx='"+self.x()+"' cy='"+self.y()+"' r='50' fill='white' stroke='black' stroke-width='"+stwidth+"'/>\
+      <circle cx='"+self.x()+"' cy='"+self.y()+"' r='"+justice.radius()+"' fill='white' stroke='black' stroke-width='"+stwidth+"'/>\
       <text x='"+self.x()+"' y='"+self.y()+"' text-anchor='middle' fill='black' font-size='20px' font-family='Arial' dy='.3em'>"+self.name()+"</text>";
   });
   self.disto = function(pos) {
-    return Math.sqrt(dist2(self.pos(),pos))-50;
+    return Math.sqrt(dist2(self.pos(),pos))-justice.radius();
   };
 };
 
 
-
+//remember which tool youre on and display it to the user
+//allow the user to edit which notes are in each chord, maybe specify which one is the root
+//save and load data
+//make the delete button work
 
 
 
@@ -114,6 +112,7 @@ function AppViewModel() {
   self.pos = null;
   self.spos = ko.observable(null);
   self.mode = "edit";
+  self.radius = ko.observable(30);
 
   self.svg = ko.computed(function() {
     var res = "";
@@ -125,7 +124,7 @@ function AppViewModel() {
     });
     //add the edge that youre currently drawing...
     if (self.mode == 'draw' && self.spos()!=null && self.activelayer()!= null && !self.activelayer().isedge) {
-      var amt = scalevec(50,normalize(subtractvec(self.spos(),self.activelayer().pos())))
+      var amt = scalevec(self.radius(),normalize(subtractvec(self.spos(),self.activelayer().pos())))
       var c = addvec(self.activelayer().pos(),amt);
       console.log(amt,c);
       res = res + drawEdge(true,false,c,self.spos());
@@ -172,8 +171,19 @@ function AppViewModel() {
       }
     });
     self.activelayer(null);
-    if (heur<8) {self.activelayer(closest);}
-    else if (self.mode == 'add') {
+    if (heur<8) {
+      if (self.mode == 'delete') {
+        self.nodes.remove(closest);
+        self.edges.remove(closest);
+        for (var i=self.edges().length-1;i>=0;i--) {
+          if (self.edges()[i].a == closest || self.edges()[i].b == closest) {
+            self.edges.remove(self.edges()[i]);
+          }
+        }
+      } else {
+        self.activelayer(closest);
+      }
+    } else if (self.mode == 'add') {
       var i = new Node('new',x,y);
       self.nodes.push(i);
       self.activelayer(i);
@@ -217,7 +227,16 @@ function AppViewModel() {
     }
     self.spos(null);
   });
-
+  self.deleteObject = function() {
+    self.nodes.remove(self.activelayer());
+    self.edges.remove(self.activelayer());
+    for (var i=self.edges().length-1;i>=0;i--) {
+      if (self.edges()[i].a == self.activelayer() || self.edges()[i].b == self.activelayer()) {
+        self.edges.remove(self.edges()[i]);
+      }
+    }
+    self.activelayer(null);
+  }
   self.addMode = function() {
     self.mode = 'add';
   }
@@ -226,6 +245,9 @@ function AppViewModel() {
   }
   self.editMode = function() {
     self.mode = 'edit';
+  }
+  self.deleteMode = function() {
+    self.mode = 'delete';
   }
   // dblclickinside($("#target"),function(x,y){self.activelayer().doubleclick(x,y);});
   // draginside($("#timeline"),function(x,y){
