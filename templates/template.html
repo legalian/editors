@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>App</title>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" type="text/css" href="static/styles.css">
+
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.0/knockout-min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
+  <svg width="0" height="0" style="position:absolute;" viewBox="0 0 0 0">
+    <defs>
+      <pattern id="smallGrid" width="6" height="6" patternUnits="userSpaceOnUse">
+        <path d="M 8 0 L 0 0 0 6" fill="none" stroke="gray" stroke-width="0.5"/>
+      </pattern>
+      <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+        <rect width="60" height="60" fill="url(#smallGrid)"/>
+        <path d="M 60 0 L 0 0 0 60" fill="none" stroke="gray" stroke-width="1"/>
+      </pattern>
+    </defs>
+  </svg>
+
+
+</head>
+
+<body>
+
+  {% block content %}{% endblock %}
+
+</body>
+</html>
+
+
+
+
