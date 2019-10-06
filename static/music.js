@@ -117,7 +117,7 @@ function Edge(a,b) {
     // console.log(self.octavechange());
     if (self.a.notes().length != 0) {voice.push(tonesof(self.a.notes(),0,"h"));}
     else {voice.push(new VF.StaveNote({clef: "treble", keys:["c/5"], duration: "hr" }));}
-    if (self.b.notes().length != 0) {voice.push(tonesof(self.b.notes(),0,"h"));}
+    if (self.b.notes().length != 0) {voice.push(tonesof(self.b.notes(),parseInt(""+self.octavechange()),"h"));}
     else {voice.push(new VF.StaveNote({clef: "treble", keys:["c/5"], duration: "hr" }));}
     drawstave(self.uuid,[voice]);
     // console.log("completed")
@@ -243,7 +243,7 @@ function AppViewModel() {
   self.edges = ko.observableArray([]);
   self.pos = null;
   self.spos = ko.observable(null);
-  self.mode = "edit";
+  self.mode = ko.observable("edit");
   self.radius = ko.observable(30);
 
   self.svg = ko.computed(function() {
@@ -255,7 +255,7 @@ function AppViewModel() {
       res = item.svg() + res;
     });
     //add the edge that youre currently drawing...
-    if (self.mode == 'draw' && self.spos()!=null && self.activelayer()!= null && !self.activelayer().isedge) {
+    if (self.mode() === 'draw' && self.spos()!=null && self.activelayer()!= null && !self.activelayer().isedge) {
       var amt = scalevec(self.radius(),normalize(subtractvec(self.spos(),self.activelayer().pos())))
       var c = addvec(self.activelayer().pos(),amt);
       res = res + drawEdge(true,false,self.spos(),c);
@@ -303,7 +303,7 @@ function AppViewModel() {
     });
     self.activelayer(null);
     if (heur<8) {
-      if (self.mode == 'delete') {
+      if (self.mode() === 'delete') {
         self.nodes.remove(closest);
         self.edges.remove(closest);
         for (var i=self.edges().length-1;i>=0;i--) {
@@ -314,7 +314,7 @@ function AppViewModel() {
       } else {
         self.activelayer(closest);
       }
-    } else if (self.mode == 'add') {
+    } else if (self.mode() === 'add') {
       var i = new Node('new',x,y);
       self.nodes.push(i);
       self.activelayer(i);
@@ -322,7 +322,7 @@ function AppViewModel() {
   },function(x,y){
     if (self.activelayer()==null) {return}
     if (!self.activelayer().isedge) {
-      if (self.mode == 'draw') {
+      if (self.mode() === 'draw') {
         self.spos({'x':x,'y':y});
       } else {
         self.activelayer().x(self.activelayer().x()+x-self.pos.x);
@@ -332,7 +332,7 @@ function AppViewModel() {
     }
   },function(x,y){
     var pos = {'x':x,'y':y};
-    if (self.mode == 'draw') {
+    if (self.mode() === 'draw') {
       var closest = null;
       var heur = 9999999;
       self.nodes().forEach(function(item){
@@ -369,16 +369,16 @@ function AppViewModel() {
     self.activelayer(null);
   }
   self.addMode = function() {
-    self.mode = 'add';
+    self.mode('add');
   }
   self.drawMode = function() {
-    self.mode = 'draw';
+    self.mode('draw');
   }
   self.editMode = function() {
-    self.mode = 'edit';
+    self.mode('edit');
   }
   self.deleteMode = function() {
-    self.mode = 'delete';
+    self.mode('delete');
   }
   // dblclickinside($("#target"),function(x,y){self.activelayer().doubleclick(x,y);});
   // draginside($("#timeline"),function(x,y){

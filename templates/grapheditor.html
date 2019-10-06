@@ -18,10 +18,10 @@
       <button>Load</button>
     </div>
     <div class = "toolbox">
-      <button data-bind="click:addMode">Add Nodes</button>
-      <button data-bind="click:drawMode">Draw edges</button>
-      <button data-bind="click:editMode">Edit data</button>
-      <button data-bind="click:deleteMode">Delete elements</button>
+      <button data-bind="click:addMode,disable:mode()==='add'">Add Nodes</button>
+      <button data-bind="click:drawMode,disable:mode()==='draw'">Draw edges</button>
+      <button data-bind="click:editMode,disable:mode()==='edit'">Edit data</button>
+      <button data-bind="click:deleteMode,disable:mode()==='delete'">Delete elements</button>
     </div>
     <div class = "propbox" data-bind="with:activelayer() " style="position:relative;">
       <i class="material-icons" style="position:absolute;right:5px;top:5px;color:red;" data-bind="click:$root.deleteObject">delete_forever</i>
