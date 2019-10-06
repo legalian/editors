@@ -23,7 +23,7 @@
       <button data-bind="click:editMode">Edit data</button>
       <button data-bind="click:deleteMode">Delete elements</button>
     </div>
-    <div class = "propbox" data-bind="with:activelayer()" style="position:relative;">
+    <div class = "propbox" data-bind="with:activelayer() " style="position:relative;">
       <i class="material-icons" style="position:absolute;right:5px;top:5px;color:red;" data-bind="click:$root.deleteObject">delete_forever</i>
       <!-- ko ifnot: editingname-->
       <span data-bind="text:name,event:{dblclick:beginEditName}"></span> Properties:<br/>
@@ -31,12 +31,19 @@
       <!-- ko if: editingname -->
       <input data-bind="value:name,click:function(data,event){event.stopPropagation();}" /> Properties:<br/>
       <!-- /ko -->
-      <!-- ko ifnot: isedge -->
-        Notes:   fuk u
+      <!-- ko ifnot:isedge -->
+        Notes:
+        <ul data-bind="foreach:notes">
+          <li><input type="number" data-bind="value:numeric"/><div style="float:left" data-bind="click:$parent.remove">-</div></li>
+        </ul>
+        <div data-bind="click:addnew">+</div>
       <!-- /ko -->
       <!-- ko if: isedge -->
         Edge weight:   <input type="range" min="0" max="100" data-bind="value:weight"/><br/>
         Octave change: <input type="number" data-bind="value:octavechange" min="-1" max="1"/><br/>
+      <!-- /ko -->
+      <!-- ko childrenComplete:onload -->
+        <div data-bind="attr:{id:'stave'+uuid}" style="height:50px;width:100%;"></div>
       <!-- /ko -->
     </div>
   </div>
@@ -56,7 +63,7 @@
   </svg>
 </div>
 
-<script src="https://unpkg.com/vexflow/releases/vexflow-min.js"></script>
+<script src="static/vexflow-min.js"></script>
 <script src="static/clickdrag.js"></script>
 <script src="static/music.js"></script>
 

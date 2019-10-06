@@ -1,9 +1,11 @@
 
 var justice = new AppViewModel();
+var VF = Vex.Flow;
 
-function drawEdge(selected,doucided,a,b,darcolor) {
+function drawEdge(selected,doucided,b,a,darcolor) {
   if (darcolor == null) {darcolor = "black"}
   var sl = Math.sqrt((a.y-b.y)*(a.y-b.y)+(a.x-b.x)*(a.x-b.x));
+  if (sl == 0 || isNaN(sl)) {return "";}
   var x0 = b.x + (a.y-b.y)*10/sl + (a.x-b.x)*20/sl;
   var y0 = b.y - (a.x-b.x)*10/sl + (a.y-b.y)*20/sl;
   var x1 = b.x - (a.y-b.y)*10/sl + (a.x-b.x)*20/sl;
@@ -23,17 +25,62 @@ function drawEdge(selected,doucided,a,b,darcolor) {
             <line x1='"+a.x+"' x2='"+b.x+"' y1='"+a.y+"' y2='"+b.y+"' stroke='"+darcolor+"' "+ostyle+"/>"+arrow;
   }
 }
+function drawstave(uuid,voices) {
+    var div = document.getElementById("stave"+uuid)
+    if (div == null) {return;}
+    $(div).empty();
+    var width = $(div).width();
 
+    var renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+    renderer.resize(width, 500);
+    var context = renderer.getContext();
+    context.setFont("Arial", 10, "").setBackgroundFillStyle("#eed");
+    var stave = new VF.Stave(10, 10, width-20);
+
+    stave.addClef("treble");//.addTimeSignature("4/4");
+    voices.forEach(function(notes) {
+      var voice = new VF.Voice({num_beats: 4,  beat_value: 4});
+      voice.addTickables(notes);
+      var formatter = new VF.Formatter().joinVoices([voice]).format([voice], width-20);
+      voice.draw(context, stave);
+    });
+    stave.setContext(context).draw();
+}
+
+function tonesof(notes,octchange,duration){
+
+  var jamba = new VF.StaveNote({
+    clef: "treble",
+    keys:notes.map(function(x) {
+      var y = parseInt(""+x.numeric());
+      var postfix = 4+Math.floor(y/12)+octchange;
+      return ["c","c#","d","d#","e","f","f#","g","g#","a","a#","b"][y%12]+"/"+postfix;
+    }),
+    duration:duration
+  });
+  notes.map(function(x,ind) {
+    if ([false,true,false,true,false,false,true,false,true,false,true,false][parseInt(""+x.numeric())%12]) {
+      jamba.addAccidental(ind,new VF.Accidental("#"));
+    }
+  })
+  return jamba
+};
+
+
+
+var staveuuid = 0;
 function Edge(a,b) {
   var self = this;
   self.a = a;
   self.b = b;
+  self.onload = function() {}
   self.isedge = true;
   self.weight = ko.observable(50);
   self.octavechange = ko.observable(0);
   self.doucided = ko.observable(false);
   self.selected = ko.observable(false);
   self.editingname = ko.observable(false);
+  self.uuid = staveuuid++;
   self.name = ko.computed(function() {
     return self.a.name()+"->"+self.b.name();
   });
@@ -50,8 +97,8 @@ function Edge(a,b) {
     return drawEdge(self.selected(),self.doucided(),c,d,darcolor);
   });
   self.disto = function(pos) {
-    var a = self.a.pos();
-    var b = self.b.pos();
+    var a = self.b.pos();
+    var b = self.a.pos();
     var amt = scalevec(justice.radius(),normalize(subtractvec(a,b)))
     var c = addvec(b,amt);
     var d = subtractvec(a,amt);
@@ -65,7 +112,30 @@ function Edge(a,b) {
       return Math.sqrt(dist2line(pos,c,d));
     }
   };
+  self.onload = function() {
+    voice = []
+    // console.log(self.octavechange());
+    if (self.a.notes().length != 0) {voice.push(tonesof(self.a.notes(),0,"h"));}
+    else {voice.push(new VF.StaveNote({clef: "treble", keys:["c/5"], duration: "hr" }));}
+    if (self.b.notes().length != 0) {voice.push(tonesof(self.b.notes(),0,"h"));}
+    else {voice.push(new VF.StaveNote({clef: "treble", keys:["c/5"], duration: "hr" }));}
+    drawstave(self.uuid,[voice]);
+    // console.log("completed")
+  };
+  // self.a.notes.subscribe(self.onload);
+  // self.b.notes.subscribe(self.onload);
+  self.octavechange.subscribe(self.onload);
+
+
 };
+
+
+function Note(num) {
+  var self = this;
+  self.numeric = ko.observable(num);
+
+}
+
 
 function Node(name,x,y) {
   var self = this;
@@ -75,6 +145,61 @@ function Node(name,x,y) {
   self.selected = ko.observable(false);
   self.x = ko.observable(x);
   self.y = ko.observable(y);
+  self.uuid = staveuuid++;
+  self.notes = ko.observableArray([]);
+  $(window).resize(function() {self.notes.notifySubscribers();});
+  self.onload   =  function() {self.notes.notifySubscribers();}
+  self.selected.subscribe(function(){self.editingname(false);})
+  self.name.subscribe(function(chord) {
+    var major_scale = [1, 3, 5, 6, 8, 10, 12, 13];
+    var index = "cdefgab".indexOf(chord.toLowerCase().charAt(0))
+    self.notes([]);
+
+    if (index != -1) {
+      self.notes.push(new Note(major_scale[index]));
+    } else if (chord.toLowerCase().indexOf("n")!=-1 && !chord.toLowerCase().indexOf("i")!=-1 && !chord.toLowerCase().indexOf("v")!=-1 && !chord.toLowerCase().indexOf("r")!=-1) { // adfsadf = new Note("N6")
+      self.notes.push(new Note(major_scale[1] - 1));
+    }
+    var invert = 0;
+    //setting the invert property to the type of inversion based on the last two characters and if they contain "ii"
+    // console.log(chord.length)
+    if (chord.length >= 2) {
+      console.log(chord.substring(chord.length - 1));
+      if (chord.substring(chord.length - 1) === ("i")) {
+        invert = 1;
+      } else if (chord.substring(chord.length - 2) === ("ii")) {
+        invert = 2;
+      }
+    }
+
+    var root = self.notes()[0].numeric();
+    var minor = chord.substring(0,1).toLowerCase() === (chord.substring(0,1));
+
+    self.notes.push(new Note(minor ? root + 3 : root + 4));
+    self.notes.push(new Note(root + 7));
+    if(chord.indexOf("7")!=-1) { self.notes.push(new Note(minor ? root + 10 : root + 11));}
+    if(chord.indexOf("9")!=-1) { self.notes.push(new Note(minor ? root + 14 : root + 14));}
+
+    //invert the chords
+    if (invert == 1) {
+      self.notes()[0].numeric(self.notes()[0].numeric() + 12);
+    } else if (invert == 2) {
+      self.notes()[0].numeric(self.notes()[0].numeric() + 12);
+      self.notes()[1].numeric(self.notes()[1].numeric() + 12);
+    }
+    self.notes.notifySubscribers();
+  });
+  self.reinventor = ko.computed(function() {
+    var voices = []
+    // console.log("reinvented");
+    // self.notes().forEach(function(item){console.log(item());});
+    if (self.notes().length != 0) {
+      voices.push([tonesof(self.notes(),0,"w")]);
+    } else {
+      voices.push([new VF.StaveNote({clef: "treble", keys:["c/5"], duration: "wr" })]);
+    }
+    drawstave(self.uuid,voices);
+  });
   self.pos = function() {return {'x':self.x(),'y':self.y()};}
 
   self.beginEditName = function() {
@@ -93,6 +218,13 @@ function Node(name,x,y) {
   });
   self.disto = function(pos) {
     return Math.sqrt(dist2(self.pos(),pos))-justice.radius();
+  };
+
+  self.remove = function(item) {
+    self.notes.remove(item);
+  };
+  self.addnew = function() {
+    self.notes.push(new Note(0));
   };
 };
 
@@ -126,8 +258,7 @@ function AppViewModel() {
     if (self.mode == 'draw' && self.spos()!=null && self.activelayer()!= null && !self.activelayer().isedge) {
       var amt = scalevec(self.radius(),normalize(subtractvec(self.spos(),self.activelayer().pos())))
       var c = addvec(self.activelayer().pos(),amt);
-      console.log(amt,c);
-      res = res + drawEdge(true,false,c,self.spos());
+      res = res + drawEdge(true,false,self.spos(),c);
     }
     return res;
   });
@@ -216,10 +347,10 @@ function AppViewModel() {
         //dont add an edge to yourself...
         var valid = true;
         self.edges().forEach(function(item){
-          if (item.a == closest && item.b == self.activelayer()) {valid=false;}
+          if (item.a == self.activelayer() && item.b == closest) {valid=false;}
         });
         if (valid) {
-          var nedg = new Edge(closest,self.activelayer());
+          var nedg = new Edge(self.activelayer(),closest);
           self.edges.push(nedg);
           self.activelayer(nedg);
         }
