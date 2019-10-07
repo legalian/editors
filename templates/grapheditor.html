@@ -15,7 +15,7 @@
   <div style="flex:1;display:flex;flex-direction:column;height:602px">
     <div class = "iobox">
       <a download="directedGraph.json" data-bind="attr:{href:bloburl()}"><button>Save</button></a>
-      <button>Load</button>
+      <input data-bind="event: {change: fileUpload}" type="file" class="fileChooser"/>
     </div>
     <div class = "toolbox">
       <button data-bind="click:addMode,disable:mode()==='add'">Add Nodes</button>

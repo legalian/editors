@@ -69,14 +69,14 @@ function tonesof(notes,octchange,duration){
 
 
 var staveuuid = 0;
-function Edge(a,b) {
+function Edge(props) {
   var self = this;
-  self.a = a;
-  self.b = b;
+  self.a = props.a;
+  self.b = props.b;
   self.onload = function() {}
   self.isedge = true;
-  self.weight = ko.observable(50);
-  self.octavechange = ko.observable(0);
+  self.weight = ko.observable(props.weight|50);
+  self.octavechange = ko.observable(props.octavechange|0);
   self.doucided = ko.observable(false);
   self.selected = ko.observable(false);
   self.editingname = ko.observable(false);
@@ -137,16 +137,16 @@ function Note(num) {
 }
 
 
-function Node(name,x,y) {
+function Node(props) {
   var self = this;
-  self.name = ko.observable(name);
+  self.name = ko.observable(props.name);
   self.editingname = ko.observable(false);
   self.isedge = false;
   self.selected = ko.observable(false);
-  self.x = ko.observable(x);
-  self.y = ko.observable(y);
+  self.x = ko.observable(props.x);
+  self.y = ko.observable(props.y);
   self.uuid = staveuuid++;
-  self.notes = ko.observableArray([]);
+  self.notes = ko.observableArray((props.notes==undefined?[]:props.notes).map(function(item){return new Note(item)}));
   $(window).resize(function() {self.notes.notifySubscribers();});
   self.onload   =  function() {self.notes.notifySubscribers();}
   self.selected.subscribe(function(){self.editingname(false);})
@@ -318,7 +318,7 @@ function AppViewModel() {
         self.activelayer(closest);
       }
     } else if (self.mode() === 'add') {
-      var i = new Node('new',x,y);
+      var i = new Node({name:'new',x:x,y:y});
       self.nodes.push(i);
       self.activelayer(i);
     }
@@ -353,7 +353,7 @@ function AppViewModel() {
           if (item.a == self.activelayer() && item.b == closest) {valid=false;}
         });
         if (valid) {
-          var nedg = new Edge(self.activelayer(),closest);
+          var nedg = new Edge({a:self.activelayer(),b:closest});
           self.edges.push(nedg);
           self.activelayer(nedg);
         }
@@ -385,18 +385,39 @@ function AppViewModel() {
   }
 
 
+  self.fileUpload = function(data,e) {
+    var file    = e.target.files[0];
+    var reader  = new FileReader();
+    reader.onloadend = function (onloadend_e) {
+      var result = JSON.parse(atob(reader.result.replace(/^.+,/g,"")));
+      self.nodes(result.nodes.map(function(item){return new Node(item);}));
+      self.edges(result.edges.map(function(item){return new Edge({
+        weight:item.weight,
+        octavechange:item.octavechange,
+        a:self.nodes()[parseInt(item.a)],
+        b:self.nodes()[parseInt(item.b)]
+      });}));
+      self.activelayer(null);
+    };
+    if(file) {reader.readAsDataURL(file);}
+  };
+
+
+
+
+
   self.reinventor = ko.computed(function() {
     // enabled(true);
-    var text = '{"nodes":['+
+    var text = '{\n\t"nodes":[\n\t\t'+
     self.nodes().map(function(item){
-      return '{"name":"'+item.name()+'","notes":['+
+      return '{"name":"'+item.name()+'","x":'+item.x()+',"y":'+item.y()+',"notes":['+
       item.notes().map(function(element){
         return element.numeric();
       }).join(",")+']}'
-    }).join(",")+'],"edges":['+
+    }).join(",\n\t\t")+'\n\t],"edges":[\n\t\t'+
     self.edges().map(function(item){
-      return '{"weight":'+item.weight()+',"octavechange":'+item.octavechange()+'}';
-    }).join(",")+']}';
+      return '{"weight":'+item.weight()+',"octavechange":'+item.octavechange()+',"a":'+self.nodes().indexOf(item.a)+',"b":'+self.nodes().indexOf(item.b)+'}';
+    }).join(",\n\t\t")+'\n\t]\n}';
 
     if (self.bloburl()!=null) {
       window.URL.revokeObjectURL(self.bloburl());
