@@ -246,6 +246,9 @@ function AppViewModel() {
   self.mode = ko.observable("edit");
   self.radius = ko.observable(30);
 
+  // self.enabled = ko.observable(null);
+  self.bloburl = ko.observable(null);
+
   self.svg = ko.computed(function() {
     var res = "";
     self.nodes().forEach(function(item){
@@ -380,6 +383,31 @@ function AppViewModel() {
   self.deleteMode = function() {
     self.mode('delete');
   }
+
+
+  self.reinventor = ko.computed(function() {
+    // enabled(true);
+    var text = '{"nodes":['+
+    self.nodes().map(function(item){
+      return '{"name":"'+item.name()+'","notes":['+
+      item.notes().map(function(element){
+        return element.numeric();
+      }).join(",")+']}'
+    }).join(",")+'],"edges":['+
+    self.edges().map(function(item){
+      return '{"weight":'+item.weight()+',"octavechange":'+item.octavechange()+'}';
+    }).join(",")+']}';
+
+    if (self.bloburl()!=null) {
+      window.URL.revokeObjectURL(self.bloburl());
+    }
+    var bb = new Blob([text], {type: "application/json"});
+    self.bloburl(window.URL.createObjectURL(bb));
+  });
+
+
+
+
   // dblclickinside($("#target"),function(x,y){self.activelayer().doubleclick(x,y);});
   // draginside($("#timeline"),function(x,y){
   // },function(x,y){
