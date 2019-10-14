@@ -5,7 +5,12 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-	return render_template('home.html')
+	return render_template('components.html')
+
+
+@app.route('/components')
+def components():
+	return render_template('components.html')
 
 @app.route('/animation')
 def animation():
